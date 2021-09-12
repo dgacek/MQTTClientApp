@@ -10,8 +10,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
+import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
@@ -34,6 +37,9 @@ public class MainActivity extends AppCompatActivity implements ConnectionSetupDi
         public void onClick(View v) {
             try {
                 mqttClient.disconnect();
+                Button btnConnect = findViewById(R.id.btnConnect);
+                btnConnect.setOnClickListener(disconnectButtonClickListener);
+                btnConnect.setText("Connect");
             } catch (MqttException e) {
                 e.printStackTrace();
                 Log.wtf("MQTT", "disconnect failed somehow lmao");
@@ -56,6 +62,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionSetupDi
             @Override
             public void connectionLost(Throwable cause) {
                 Toast.makeText(getBaseContext(), String.format("Connection lost - %s", cause.getMessage()), Toast.LENGTH_LONG).show();
+                TextView txtvStatus = findViewById(R.id.txtvStatus);
+                txtvStatus.setText("Connection lost");
                 Log.w("MQTT", String.format("Connection lost - %s", cause.getMessage()), cause);
                 Button btnConnect = findViewById(R.id.btnConnect);
                 btnConnect.setText("Connect");
@@ -73,6 +81,24 @@ public class MainActivity extends AppCompatActivity implements ConnectionSetupDi
                 //not implemented
             }
         });
+        try {
+            mqttClient.connect(new MqttConnectOptions(), null, new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken) {
+
+                }
+
+                @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+
+                }
+            });
+        } catch (MqttException e) {
+            e.printStackTrace();
+            Toast.makeText(getBaseContext(), String.format("Connection failed - %s", e.getMessage()), Toast.LENGTH_LONG);
+            TextView txtvStatus = findViewById(R.id.txtvStatus);
+            txtvStatus.setText("Connection failed");
+        }
     }
 
     @Override
