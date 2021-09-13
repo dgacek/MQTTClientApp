@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -48,8 +49,8 @@ public class ConnectionSetupDialogFragment extends DialogFragment {
                 .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        brokerUri = dialogView.findViewById(R.id.txtinBrokerUri).toString();
-                        topics = Arrays.asList(dialogView.findViewById(R.id.txtinmlTopics).toString().split("\n"));
+                        brokerUri = ((EditText)dialogView.findViewById(R.id.txtinBrokerUri)).getText().toString();
+                        topics = Arrays.asList(((EditText)dialogView.findViewById(R.id.txtinmlTopics)).getText().toString().split("\n"));
                         listener.onDialogPositiveClick(ConnectionSetupDialogFragment.this);
                     }
                 })

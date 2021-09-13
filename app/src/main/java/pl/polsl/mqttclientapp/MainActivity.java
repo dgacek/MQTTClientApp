@@ -19,11 +19,11 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements ConnectionSetupDialogFragment.SetupDialogListener {
-
     private MqttAndroidClient mqttClient;
     private final View.OnClickListener connectButtonClickListener = new View.OnClickListener() {
         @Override
@@ -37,13 +37,14 @@ public class MainActivity extends AppCompatActivity implements ConnectionSetupDi
         public void onClick(View v) {
             try {
                 mqttClient.disconnect();
-                Button btnConnect = findViewById(R.id.btnConnect);
-                btnConnect.setOnClickListener(disconnectButtonClickListener);
-                btnConnect.setText("Connect");
             } catch (MqttException e) {
                 e.printStackTrace();
-                Log.wtf("MQTT", "disconnect failed somehow lmao");
             }
+            Button btnConnect = findViewById(R.id.btnConnect);
+            TextView txtvStatus = findViewById(R.id.txtvStatus);
+            txtvStatus.setText("Disconnected");
+            btnConnect.setOnClickListener(connectButtonClickListener);
+            btnConnect.setText("Connect");
         }
     };
     private HashMap<String, String> messages = new HashMap<>();
@@ -61,10 +62,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionSetupDi
         mqttClient.setCallback(new MqttCallback() {
             @Override
             public void connectionLost(Throwable cause) {
-                Toast.makeText(getBaseContext(), String.format("Connection lost - %s", cause.getMessage()), Toast.LENGTH_LONG).show();
                 TextView txtvStatus = findViewById(R.id.txtvStatus);
                 txtvStatus.setText("Connection lost");
-                Log.w("MQTT", String.format("Connection lost - %s", cause.getMessage()), cause);
                 Button btnConnect = findViewById(R.id.btnConnect);
                 btnConnect.setText("Connect");
                 btnConnect.setOnClickListener(connectButtonClickListener);
@@ -85,12 +84,24 @@ public class MainActivity extends AppCompatActivity implements ConnectionSetupDi
             mqttClient.connect(new MqttConnectOptions(), null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
-
+                    try {
+                        mqttClient.subscribe((String[])dialog.getTopics().toArray(),
+                                Collections.nCopies(dialog.getTopics().size(), 1).stream().mapToInt(i->i).toArray()); //create an int array of size the same as the topics list, filled with 1s
+                        Button btnConnect = findViewById(R.id.btnConnect);
+                        TextView txtvStatus = findViewById(R.id.txtvStatus);
+                        btnConnect.setOnClickListener(disconnectButtonClickListener);
+                        btnConnect.setText("Disconnect");
+                        txtvStatus.setText(String.format("Connected to broker %s", dialog.getBrokerUri()));
+                    } catch (MqttException e) {
+                        e.printStackTrace();
+                        ((TextView)findViewById(R.id.txtvStatus)).setText(String.format("Subscription error - %s", e.getMessage()));
+                    }
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-
+                    exception.printStackTrace();
+                    ((TextView)findViewById(R.id.txtvStatus)).setText(String.format("Connection failed - %s", exception.getMessage()));
                 }
             });
         } catch (MqttException e) {
@@ -113,7 +124,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionSetupDi
         for (Map.Entry<String, String> message : messages.entrySet()) {
             builder.append(message.getKey())
                     .append(":\t")
-                    .append(message.getValue());
+                    .append(message.getValue())
+                    .append("\n");
         }
         textView.setText(builder.toString());
     }
